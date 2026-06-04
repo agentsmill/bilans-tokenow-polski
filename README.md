@@ -6,15 +6,30 @@ ile mocy obliczeniowej Polska *produkuje* (podaż z mapy data center) wobec tego
 
 > **Model edukacyjny i poglądowy — nie prognoza inwestycyjna.**
 
+## Dwie warstwy: realne vs planowane
+
+Sednem modelu jest rozróżnienie:
+
+- **Realne dziś** — faktycznie działająca infrastruktura GPU (Cyfronet Helios/Athena, Beyond.pl
+  AI Factory, PCSS PIAST-AI). Tego jest *mało* (~1 300 kart) i liczone jest realnym, niższym
+  throughputem wg generacji (A100 ~900, H100 ~1800, GH200 ~2200, B200 ~3500 tok/s). Na tej
+  podstawie Polska jest dziś **importerem** tokenów (~40% pokrycia popytu).
+- **Plany** — ogłoszone wielkoskalowe DC (Lublewko, Stargard, Bełchatów…), łącznie ~5,12 GW
+  mocy przyłączeniowej, liczone throughputem GB200 NVL72. Po zbudowaniu czynią z Polski
+  masywnego **eksportera** mocy obliczeniowej.
+
+Przełącznik **„Podstawa podaży"** (Realne dziś · Plany · Razem) decyduje, na czym liczony jest bilans.
+
 ## Co potrafi
 
-- **Mapa Polski (SVG)** z data center jako pulsującymi punktami (wielkość ∝ moc przyłączeniowa).
-- **Dodawanie** DC — kliknij wnętrze mapy → ustaw nazwę i moc.
-- **Edycja / usuwanie** — kliknij istniejący punkt.
+- **Mapa Polski (SVG)** z dwiema warstwami: realne klastry (pełne punkty, skala = liczba GPU)
+  i planowane DC (przerywane punkty, skala = moc przyłączeniowa).
+- **Dodawanie** DC — kliknij wnętrze mapy → ustaw nazwę i moc (warstwa planów).
+- **Edycja / usuwanie** — kliknij punkt (realne edytuje liczbę GPU, planowane — moc).
 - **4 etapy adopcji AI** (Dziś → Pełna automatyzacja) przeliczające popyt w czasie rzeczywistym.
 - **Wielki wskaźnik EKSPORT / IMPORT** + bilans netto tokenów na dobę.
-- **Gauge podaż vs popyt**, struktura popytu (konsumencki / agentyczny), liczba agent-FTE.
-- **Karty kosztów**: CAPEX (mld zł), moc potrzebna na pokrycie popytu, udział w szczycie KSE (~27 GW).
+- **Trójpaskowy gauge (skala log)**: podaż realna vs wg planów vs popyt; struktura popytu, agent-FTE.
+- **Karty**: liczba GPU, CAPEX (mld zł), moc potrzebna na pokrycie popytu, udział w szczycie KSE (~27 GW).
 - **Suwaki parametrów DC**: PUE, utilization, % mocy na inference.
 - **Sekcja wniosków strategicznych** + nota metodologiczna.
 

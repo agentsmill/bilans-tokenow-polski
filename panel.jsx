@@ -16,6 +16,31 @@ function StageSelector({ stages, current, onChange }) {
   );
 }
 
+const BASIS_OPTS = [
+  { id: 'real', label: 'Realne dziś', sub: 'co działa' },
+  { id: 'plan', label: 'Plany', sub: 'ogłoszone' },
+  { id: 'both', label: 'Razem', sub: 'real + plan' },
+];
+
+function BasisSelector({ current, onChange, supReal, supPlan }) {
+  const rt = fmtTokens(supReal), pt = fmtTokens(supPlan);
+  const val = (id) => (id === 'real' ? rt : id === 'plan' ? pt : fmtTokens(supReal + supPlan));
+  return (
+    <div className="basis-row">
+      {BASIS_OPTS.map((o) => {
+        const t = val(o.id);
+        return (
+          <button key={o.id} className={'basis-btn' + (o.id === current ? ' active' : '')}
+                  onClick={() => onChange(o.id)}>
+            <span className="basis-label">{o.label}</span>
+            <span className="basis-val">{t.num} {t.unit}<i> tok/d</i></span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function BalanceIndicator({ bal }) {
   const exp = bal.mode === 'EKSPORT';
   const tok = fmtTokens(Math.abs(bal.net));
@@ -39,23 +64,29 @@ function BalanceIndicator({ bal }) {
   );
 }
 
-function Gauge({ sup, demTotal }) {
-  const max = Math.max(sup, demTotal, 1);
-  const sW = (sup / max) * 100;
-  const dW = (demTotal / max) * 100;
-  const st = fmtTokens(sup), dt = fmtTokens(demTotal);
+/* Trójpaskowy gauge: podaż realna (dziś) vs podaż wg planów vs popyt.
+   Skala logarytmiczna — inaczej realna podaż (o ~3 rzędy mniejsza od planów)
+   byłaby niewidocznym pikselem. */
+function Gauge({ supReal, supPlan, demTotal, basis }) {
+  const vals = [supReal, supPlan, demTotal].filter((v) => v > 0);
+  const max = Math.max(...vals, 1);
+  const lg = (v) => (v <= 0 ? 0 : Math.max(2, (Math.log10(v) / Math.log10(max)) * 100));
+  const row = (tag, v, cls, on) => {
+    const t = fmtTokens(v);
+    return (
+      <div className={'gauge-row' + (on ? ' on' : '')}>
+        <span className="gauge-tag">{tag}</span>
+        <div className="gauge-track"><div className={'gauge-fill ' + cls} style={{ width: lg(v) + '%' }} /></div>
+        <span className="gauge-val">{t.num} {t.unit}</span>
+      </div>
+    );
+  };
   return (
     <div className="gauge">
-      <div className="gauge-row">
-        <span className="gauge-tag">Podaż</span>
-        <div className="gauge-track"><div className="gauge-fill sup" style={{ width: sW + '%' }} /></div>
-        <span className="gauge-val">{st.num} {st.unit}</span>
-      </div>
-      <div className="gauge-row">
-        <span className="gauge-tag">Popyt</span>
-        <div className="gauge-track"><div className="gauge-fill dem" style={{ width: Math.max(dW, 0.6) + '%' }} /></div>
-        <span className="gauge-val">{dt.num} {dt.unit}</span>
-      </div>
+      <div className="gauge-cap">skala logarytmiczna</div>
+      {row('Dziś', supReal, 'sup', basis === 'real')}
+      {row('Plany', supPlan, 'sup-plan', basis === 'plan')}
+      {row('Popyt', demTotal, 'dem', false)}
     </div>
   );
 }
@@ -94,16 +125,20 @@ function StatCard({ label, value, unit, sub, tone }) {
   );
 }
 
-function StatCards({ cap, gwNeed, totalGW }) {
-  const ksePct = (totalGW / CONST.KSE_PEAK_GW) * 100;
-  const needTone = gwNeed > totalGW ? 'warn' : 'ok';
+function StatCards({ supSel, cap, gwNeed, basis }) {
+  const gw = supSel.gw;                              // moc planowana (real ≈ 0)
+  const ksePct = (gw / CONST.KSE_PEAK_GW) * 100;
+  const needTone = gwNeed > gw + 1e-9 ? 'warn' : 'ok';
+  const gpus = supSel.gpus;
   return (
     <div className="stats">
+      <StatCard label="Pracujące GPU (AI-grade)" value={fmtInt(gpus)} unit=""
+                sub={basis === 'real' ? 'realne, działające dziś' : basis === 'plan' ? 'wyprowadzone z mocy planów' : 'real + plany'} />
       <StatCard label="Koszt budowy (CAPEX)" value={fmtMldPLN(cap)} unit=" mld zł"
                 sub="all-in · 37 M$/MW IT · kurs 4,0" />
       <StatCard label="Moc na pokrycie popytu" value={fmtNum(gwNeed, gwNeed >= 10 ? 0 : 1)} unit=" GW"
-                sub={`dostępne na mapie: ${fmtNum(totalGW, 2)} GW`} tone={needTone} />
-      <StatCard label="Udział w szczycie KSE" value={fmtNum(ksePct, ksePct >= 100 ? 0 : 0)} unit=" %"
+                sub={`w tej podstawie: ${fmtNum(gw, gw >= 1 ? 2 : 3)} GW`} tone={needTone} />
+      <StatCard label="Udział w szczycie KSE" value={fmtNum(ksePct, ksePct >= 1 ? 0 : 1)} unit=" %"
                 sub={`szczyt krajowy ~${CONST.KSE_PEAK_GW} GW (zima)`} />
     </div>
   );
@@ -122,7 +157,7 @@ function Slider({ label, value, min, max, step, fmt, onChange }) {
   );
 }
 
-function AdvancedParams({ params, setParams, sup, open, onToggle }) {
+function AdvancedParams({ params, setParams, supSel, open, onToggle }) {
   return (
     <div className="advanced">
       <button className="adv-toggle" onClick={onToggle}>
@@ -138,9 +173,9 @@ function AdvancedParams({ params, setParams, sup, open, onToggle }) {
           <Slider label="% mocy na inference" value={params.inf} min={0.30} max={1.0} step={0.01}
                   fmt={(v) => fmtInt(v * 100) + '%'} onChange={(v) => setParams({ ...params, inf: v })} />
           <div className="adv-derived">
-            <span>{fmtInt(sup.itMW)} MW IT</span>
-            <span>{fmtInt(sup.racks)} szaf NVL72</span>
-            <span>{fmtInt(sup.gpus)} GPU</span>
+            <span>{fmtNum(supSel.itMW, supSel.itMW >= 100 ? 0 : 1)} MW IT</span>
+            <span>{fmtInt(supSel.racks)} szaf</span>
+            <span>{fmtInt(supSel.gpus)} GPU</span>
           </div>
         </div>
       )}
@@ -149,21 +184,26 @@ function AdvancedParams({ params, setParams, sup, open, onToggle }) {
 }
 
 function ControlPanel(props) {
-  const { stage, setStageId, bal, dem, sup, cap, gwNeed, totalGW,
-          params, setParams, advOpen, setAdvOpen } = props;
+  const { stage, setStageId, bal, dem, supReal, supPlan, supSel, cap, gwNeed,
+          basis, setBasis, params, setParams, advOpen, setAdvOpen } = props;
   return (
     <div className="panel">
       <div className="panel-block">
-        <span className="kicker">Etap adopcji AI</span>
+        <span className="kicker">Etap adopcji AI · popyt</span>
         <StageSelector stages={STAGES} current={stage.id} onChange={setStageId} />
         <p className="stage-blurb">{stage.blurb}</p>
       </div>
 
+      <div className="panel-block">
+        <span className="kicker">Podstawa podaży · co liczymy</span>
+        <BasisSelector current={basis} onChange={setBasis} supReal={supReal} supPlan={supPlan} />
+      </div>
+
       <BalanceIndicator bal={bal} />
-      <Gauge sup={sup.tokDay} demTotal={dem.total} />
+      <Gauge supReal={supReal} supPlan={supPlan} demTotal={dem.total} basis={basis} />
       <DemandBreakdown dem={dem} />
-      <StatCards cap={cap} gwNeed={gwNeed} totalGW={totalGW} />
-      <AdvancedParams params={params} setParams={setParams} sup={sup}
+      <StatCards supSel={supSel} cap={cap} gwNeed={gwNeed} basis={basis} />
+      <AdvancedParams params={params} setParams={setParams} supSel={supSel}
                       open={advOpen} onToggle={() => setAdvOpen(!advOpen)} />
     </div>
   );

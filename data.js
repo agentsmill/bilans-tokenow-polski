@@ -5,7 +5,7 @@
 
 /* ----------------------------- STAŁE SILNIKA ----------------------------- */
 const CONST = {
-  TPS: 7583,            // tok/s na GPU (SGLang / DeepSeek-V3, prompt 2k, decode)
+  TPS: 7583,            // tok/s na GPU — GB200 NVL72 (SGLang / DeepSeek-V3, prompt 2k, decode)
   GPU_PER_RACK: 72,     // Blackwell GB200 NVL72
   RACK_KW: 120,         // moc na szafę (HPE: 132; baza 120)
   PUE: 1.25,            // sprawność DC
@@ -17,14 +17,51 @@ const CONST = {
   KSE_PEAK_GW: 27,      // szczyt zapotrzebowania KSE (zima)
 };
 
-/* ----------------------- DATA CENTER — STAN WYJŚCIOWY --------------------- */
-const INITIAL_DCS = [
-  { id: 1, name: 'Lublewko',     mw: 3200, lat: 54.60, lon: 17.90, note: 'offshore wind' },
-  { id: 2, name: 'Stargard',     mw: 960,  lat: 53.30, lon: 15.00, note: 'offshore wind' },
-  { id: 3, name: 'Konin',        mw: 260,  lat: 52.20, lon: 18.25, note: '' },
-  { id: 4, name: 'Bełchatów',    mw: 500,  lat: 51.20, lon: 19.40, note: 'węzeł energetyczny' },
-  { id: 5, name: 'Bielsko-Biała', mw: 200, lat: 49.80, lon: 19.05, note: '' },
+/* --- THROUGHPUT wg generacji GPU (tok/s/GPU, szacunki rzędu wielkości) ---
+   Benchmark bazowy 7 583 dotyczy GB200 w NVL72 (domena NVLink-72). Starsze i
+   pojedyncze karty są przy inferencji LLM znacząco wolniejsze — dlatego realna
+   infrastruktura liczona jest niższym, generacyjnym throughputem. */
+const TPS_BY_GPU = {
+  GB200: 7583,   // Blackwell NVL72 (planowane wielkoskalowe DC)
+  B200:  3500,   // Blackwell DGX/HGX (Beyond.pl AI Factory)
+  GH200: 2200,   // Grace Hopper (Cyfronet Helios)
+  H100:  1800,   // Hopper
+  A100:   900,   // Ampere (Cyfronet Athena)
+};
+
+/* ===========================================================================
+   DATA CENTER — DWIE WARSTWY
+   - PLANNED: ogłoszone plany; moc przyłączeniowa (MW). GPU wyprowadzane z mocy,
+     throughput GB200 NVL72.
+   - REAL: faktycznie działająca infrastruktura GPU (2025). Liczba GPU wpisana
+     wprost (dane / szacunki), throughput zależny od generacji kart.
+   =========================================================================== */
+
+/* --- PLANY (ogłoszone wielkoskalowe DC AI) — moc przyłączeniowa --- */
+const PLANNED_DCS = [
+  { id: 'p1', kind: 'planned', name: 'Lublewko',      mw: 3200, lat: 54.60, lon: 17.90, note: 'offshore wind' },
+  { id: 'p2', kind: 'planned', name: 'Stargard',      mw: 960,  lat: 53.30, lon: 15.00, note: 'offshore wind' },
+  { id: 'p3', kind: 'planned', name: 'Konin',         mw: 260,  lat: 52.20, lon: 18.25, note: '' },
+  { id: 'p4', kind: 'planned', name: 'Bełchatów',     mw: 500,  lat: 51.20, lon: 19.40, note: 'węzeł energetyczny' },
+  { id: 'p5', kind: 'planned', name: 'Bielsko-Biała', mw: 200,  lat: 49.80, lon: 19.05, note: '' },
 ];
+
+/* --- REALNA INFRASTRUKTURA GPU (2025) — publicznie znane klastry ---
+   gpus = przybliżona liczba kart AI-grade; tps = throughput wg generacji.
+   Cyfronet (Kraków): Helios (440× GH200 + 24× H100) + Athena (384× A100), blended.
+   Beyond.pl (Poznań): NVIDIA DGX B200 SuperPOD — skala ~1 scalable unit (szac.).
+   PCSS / PIAST-AI (Poznań): EuroHPC AI Factory — rząd setek kart H100-class (szac.). */
+const REAL_DCS = [
+  { id: 'r1', kind: 'real', name: 'Cyfronet',  lat: 50.07, lon: 19.92,
+    gpus: 848, tps: 1600, gpuType: 'GH200 / A100 / H100', note: 'Helios + Athena · Kraków' },
+  { id: 'r2', kind: 'real', name: 'Beyond.pl', lat: 52.25, lon: 16.62,
+    gpus: 256, tps: TPS_BY_GPU.B200, gpuType: 'DGX B200 SuperPOD', note: 'AI Factory · Poznań (szac.)' },
+  { id: 'r3', kind: 'real', name: 'PCSS',      lat: 52.62, lon: 17.10,
+    gpus: 200, tps: TPS_BY_GPU.H100, gpuType: 'H100-class', note: 'PIAST-AI / EuroHPC · Poznań (szac.)' },
+];
+
+// Pełny stan wyjściowy mapy = obie warstwy (używane też przy resecie).
+const INITIAL_DCS = [...REAL_DCS, ...PLANNED_DCS].map((d) => ({ ...d }));
 
 const WARSAW = { name: 'Warszawa', lat: 52.23, lon: 21.01 };
 
@@ -157,7 +194,7 @@ function fmtMldPLN(pln) {
 }
 
 Object.assign(window, {
-  CONST, INITIAL_DCS, WARSAW, STAGES, PARAM_DEFAULTS,
+  CONST, TPS_BY_GPU, PLANNED_DCS, REAL_DCS, INITIAL_DCS, WARSAW, STAGES, PARAM_DEFAULTS,
   GEO, VIEW, project, unproject, BORDER_LL, borderPath,
   fmtInt, fmtNum, fmtTokens, fmtMldPLN,
 });

@@ -1,4 +1,4 @@
-/* map.jsx — interaktywna mapa Polski z data center */
+/* map.jsx — interaktywna mapa Polski z data center (dwie warstwy: real + planned) */
 const { useRef: _useRefMap } = React;
 
 // point-in-polygon (ray casting) w przestrzeni projekcji
@@ -13,32 +13,58 @@ function pointInPoland(x, y) {
   return inside;
 }
 
-function dcRadius(mw) { return 6 + Math.sqrt(mw) * 0.78; }
+// planowane skalujemy mocą (MW), realne — liczbą GPU; osobne skale, bo
+// plany są o rzędy wielkości większe i mają wizualnie dominować.
+function plannedRadius(mw) { return 8 + Math.sqrt(mw) * 0.78; }
+function realRadius(gpus) { return 5 + Math.sqrt(gpus) * 0.42; }
 
 function powerLabel(mw) {
   if (mw >= 1000) return fmtNum(mw / 1000, mw % 1000 === 0 ? 0 : 1) + ' GW';
   return fmtInt(mw) + ' MW';
 }
+function gpuLabel(gpus) { return fmtInt(gpus) + ' GPU'; }
 
-function DCPin({ dc, selected, onSelect, acc }) {
+/* --- PIN PLANOWANY: duży, przygaszony, przerywany obrys ("plan") --- */
+function PlannedPin({ dc, selected, onSelect, acc }) {
   const { x, y } = project(dc.lon, dc.lat);
-  const r = dcRadius(dc.mw);
+  const r = plannedRadius(dc.mw);
   const flipX = x > VIEW.w * 0.66;
   const lx = flipX ? x - r - 14 : x + r + 14;
   const anchor = flipX ? 'end' : 'start';
   const big = dc.mw >= 1000;
   return (
-    <g className="dcpin" onClick={(e) => { e.stopPropagation(); onSelect(dc.id); }}
+    <g className="dcpin planned" onClick={(e) => { e.stopPropagation(); onSelect(dc.id); }}
        style={{ cursor: 'pointer' }}>
-      <circle cx={x} cy={y} r={r * 2.1} fill={acc} opacity="0.10" className="pin-glow" />
-      <circle cx={x} cy={y} r={r} fill="none" stroke={acc} strokeWidth="2.5"
-              opacity="0.55" className="pin-pulse" style={{ transformOrigin: `${x}px ${y}px` }} />
-      <circle cx={x} cy={y} r={r} fill={acc} opacity={selected ? 0.95 : 0.78} />
-      <circle cx={x} cy={y} r={r * 0.42} fill="#04140e" />
+      <circle cx={x} cy={y} r={r * 2.0} fill={acc} opacity="0.06" className="pin-glow" />
+      <circle cx={x} cy={y} r={r} fill={acc} fillOpacity={selected ? 0.22 : 0.14}
+              stroke={acc} strokeWidth="2.2" strokeDasharray="5 5" strokeOpacity="0.85" />
+      <circle cx={x} cy={y} r={r * 0.34} fill={acc} opacity="0.55" />
       {selected && <circle cx={x} cy={y} r={r + 7} fill="none" stroke="#fff" strokeWidth="1.5" strokeDasharray="3 4" />}
       <text x={lx} y={y - 2} textAnchor={anchor} className="pin-power"
             style={{ fontSize: big ? 30 : 24 }}>{powerLabel(dc.mw)}</text>
-      <text x={lx} y={y + 20} textAnchor={anchor} className="pin-name">{dc.name}</text>
+      <text x={lx} y={y + 20} textAnchor={anchor} className="pin-name">{dc.name}<tspan className="pin-tag"> · plan</tspan></text>
+    </g>
+  );
+}
+
+/* --- PIN REALNY: mały, pełny, pulsujący ("działa dziś") --- */
+function RealPin({ dc, selected, onSelect, acc }) {
+  const { x, y } = project(dc.lon, dc.lat);
+  const r = realRadius(dc.gpus);
+  const flipX = x > VIEW.w * 0.66;
+  const lx = flipX ? x - r - 12 : x + r + 12;
+  const anchor = flipX ? 'end' : 'start';
+  return (
+    <g className="dcpin real" onClick={(e) => { e.stopPropagation(); onSelect(dc.id); }}
+       style={{ cursor: 'pointer' }}>
+      <circle cx={x} cy={y} r={r * 2.1} fill={acc} opacity="0.12" className="pin-glow" />
+      <circle cx={x} cy={y} r={r} fill="none" stroke={acc} strokeWidth="2.5"
+              opacity="0.55" className="pin-pulse" style={{ transformOrigin: `${x}px ${y}px` }} />
+      <circle cx={x} cy={y} r={r} fill={acc} opacity={selected ? 0.98 : 0.85} />
+      <circle cx={x} cy={y} r={r * 0.42} fill="#04140e" />
+      {selected && <circle cx={x} cy={y} r={r + 6} fill="none" stroke="#fff" strokeWidth="1.5" strokeDasharray="3 4" />}
+      <text x={lx} y={y - 1} textAnchor={anchor} className="pin-power" style={{ fontSize: 19 }}>{gpuLabel(dc.gpus)}</text>
+      <text x={lx} y={y + 17} textAnchor={anchor} className="pin-name" style={{ fontSize: 14 }}>{dc.name}</text>
     </g>
   );
 }
@@ -83,6 +109,9 @@ function PolandMap({ dcs, selectedId, onSelect, onAddAt, mode, net, acc }) {
   }
 
   const wpt = project(WARSAW.lon, WARSAW.lat);
+  // rysuj plany pod spodem, realne na wierzchu (mniejsze, „żywe")
+  const planned = dcs.filter((d) => d.kind !== 'real');
+  const real = dcs.filter((d) => d.kind === 'real');
 
   return (
     <svg ref={svgRef} viewBox={`0 0 ${VIEW.w} ${VIEW.h}`} className="map-svg"
@@ -111,11 +140,14 @@ function PolandMap({ dcs, selectedId, onSelect, onAddAt, mode, net, acc }) {
 
       <FlowArrow mode={mode} net={net} />
 
-      {dcs.map((dc) => (
-        <DCPin key={dc.id} dc={dc} selected={dc.id === selectedId} onSelect={onSelect} acc={acc} />
+      {planned.map((dc) => (
+        <PlannedPin key={dc.id} dc={dc} selected={dc.id === selectedId} onSelect={onSelect} acc={acc} />
+      ))}
+      {real.map((dc) => (
+        <RealPin key={dc.id} dc={dc} selected={dc.id === selectedId} onSelect={onSelect} acc={acc} />
       ))}
     </svg>
   );
 }
 
-Object.assign(window, { PolandMap, dcRadius, powerLabel });
+Object.assign(window, { PolandMap, plannedRadius, realRadius, powerLabel, gpuLabel });

@@ -73,8 +73,15 @@
   .flow-label{font-family:var(--mono);font-weight:700;font-size:21px;letter-spacing:.14em}
   .flow-num{font-family:var(--mono);font-size:19px}
   .map-hint{font-family:var(--mono);font-size:11px;color:var(--mut);text-align:center;
-    padding:10px 0 8px}
+    padding:6px 0 8px}
   .mh-key{color:var(--acc);font-weight:700}
+  .pin-tag{fill:var(--mut);font-style:italic}
+  .map-legend{display:flex;gap:20px;justify-content:center;flex-wrap:wrap;
+    font-family:var(--mono);font-size:10.5px;color:var(--soft);padding:8px 0 0}
+  .map-legend span{display:inline-flex;align-items:center;gap:7px}
+  .lg-dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+  .lg-dot.real{background:var(--acc)}
+  .lg-dot.plan{background:transparent;border:2px dashed var(--acc)}
 
   /* -------------------------------- PANEL ------------------------------- */
   .panel{display:flex;flex-direction:column;gap:18px}
@@ -91,6 +98,17 @@
   .stage-btn.active .stage-label{color:var(--acc)}
   .stage-sub{font-family:var(--mono);font-size:9.5px;color:var(--mut)}
   .stage-blurb{margin:0;font-size:12.5px;line-height:1.5;color:var(--soft)}
+
+  .basis-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .basis-btn{display:flex;flex-direction:column;gap:4px;padding:11px 11px;text-align:left;
+    background:var(--panel2);border:1px solid var(--line);border-radius:9px;cursor:pointer;
+    transition:.15s}
+  .basis-btn:hover{border-color:color-mix(in srgb,var(--acc) 40%,var(--line))}
+  .basis-btn.active{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 8%,var(--panel2))}
+  .basis-label{font-family:var(--sans);font-weight:600;font-size:12.5px;color:var(--soft)}
+  .basis-btn.active .basis-label{color:var(--acc)}
+  .basis-val{font-family:var(--mono);font-size:11px;color:var(--mut)}
+  .basis-val i{font-style:normal;font-size:9px;color:var(--mut2)}
 
   .balance{padding:22px;border-radius:14px;border:1px solid var(--line);position:relative;
     overflow:hidden}
@@ -111,15 +129,21 @@
   .balance-cov{font-family:var(--mono);font-size:11px;color:var(--mut);margin-top:8px;
     text-transform:uppercase;letter-spacing:.1em}
 
-  .gauge{display:flex;flex-direction:column;gap:11px}
+  .gauge{display:flex;flex-direction:column;gap:9px}
+  .gauge-cap{font-family:var(--mono);font-size:9px;color:var(--mut2);text-transform:uppercase;
+    letter-spacing:.1em;text-align:right;margin-bottom:-2px}
   .gauge-row{display:grid;grid-template-columns:54px 1fr auto;align-items:center;gap:10px}
+  .gauge-row.on .gauge-tag{color:var(--ink)}
   .gauge-tag{font-family:var(--mono);font-size:10.5px;color:var(--mut);text-transform:uppercase;
     letter-spacing:.08em}
   .gauge-track{height:11px;background:var(--panel2);border:1px solid var(--line);
     border-radius:6px;overflow:hidden}
+  .gauge-row.on .gauge-track{border-color:color-mix(in srgb,var(--acc) 45%,var(--line))}
   .gauge-fill{height:100%;border-radius:6px;transition:width .5s cubic-bezier(.2,.7,.2,1)}
   .gauge-fill.sup{background:linear-gradient(90deg,
     color-mix(in srgb,var(--acc) 70%,#04140e),var(--acc))}
+  .gauge-fill.sup-plan{background:repeating-linear-gradient(90deg,
+    color-mix(in srgb,var(--acc) 55%,#04140e) 0 6px,transparent 6px 11px)}
   .gauge-fill.dem{background:linear-gradient(90deg,
     color-mix(in srgb,var(--amber) 78%,#150d02),var(--amber))}
   .gauge-val{font-family:var(--mono);font-size:11.5px;color:var(--soft);
