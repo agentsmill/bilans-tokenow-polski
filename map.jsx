@@ -72,23 +72,36 @@ function RealPin({ dc, selected, onSelect, acc }) {
 function FlowArrow({ mode, net }) {
   const exporting = mode === 'EKSPORT';
   const col = exporting ? 'var(--acc)' : 'var(--red)';
-  const y = VIEW.h * 0.25;
-  const xR = VIEW.w * 0.95;   // koniec przy wschodniej granicy
-  const xL = xR - 120;
   const tok = fmtTokens(Math.abs(net));
-  const d = exporting ? `M${xL} ${y} L${xR} ${y}` : `M${xR} ${y} L${xL} ${y}`;
-  const head = exporting
-    ? `M${xR} ${y} l-22 -13 l0 26 z`
-    : `M${xL} ${y} l22 -13 l0 26 z`;
+
+  if (exporting) {
+    // EKSPORT — wschodnia granica, strzałka wychodzi na wschód (do regionu)
+    const y = VIEW.h * 0.25;
+    const xR = VIEW.w * 0.95;
+    const xL = xR - 120;
+    return (
+      <g className="flow" pointerEvents="none">
+        <path d={`M${xL} ${y} L${xR} ${y}`} stroke={col} strokeWidth="6" fill="none"
+              opacity="0.85" strokeDasharray="2 14" strokeLinecap="round" className="flow-dash" />
+        <path d={`M${xR} ${y} l-22 -13 l0 26 z`} fill={col} />
+        <text x={xR} y={y - 20} textAnchor="end" className="flow-label" fill={col}>EKSPORT</text>
+        <text x={xR} y={y + 36} textAnchor="end" className="flow-num" fill={col}>
+          {tok.num} {tok.unit} tok/d → region
+        </text>
+      </g>
+    );
+  }
+  // IMPORT — zachodnia granica, strzałka wchodzi z Niemiec do środka Polski
+  const y = VIEW.h * 0.42;
+  const xL = VIEW.w * 0.02;
+  const xR = xL + 110;
   return (
     <g className="flow" pointerEvents="none">
-      <path d={d} stroke={col} strokeWidth="6" fill="none" opacity="0.85"
-            strokeDasharray="2 14" strokeLinecap="round" className="flow-dash" />
-      <path d={head} fill={col} />
-      <text x={xR} y={y - 20} textAnchor="end" className="flow-label" fill={col}>
-        {mode}
-      </text>
-      <text x={xR} y={y + 36} textAnchor="end" className="flow-num" fill={col}>
+      <path d={`M${xL} ${y} L${xR} ${y}`} stroke={col} strokeWidth="6" fill="none"
+            opacity="0.85" strokeDasharray="2 14" strokeLinecap="round" className="flow-dash" />
+      <path d={`M${xR} ${y} l-22 -13 l0 26 z`} fill={col} />
+      <text x={xL} y={y - 20} textAnchor="start" className="flow-label" fill={col}>IMPORT</text>
+      <text x={xL} y={y + 36} textAnchor="start" className="flow-num" fill={col}>
         {tok.num} {tok.unit} tok/d
       </text>
     </g>
