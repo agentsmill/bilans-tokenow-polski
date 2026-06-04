@@ -125,21 +125,25 @@ function StatCard({ label, value, unit, sub, tone }) {
   );
 }
 
-function StatCards({ supSel, cap, gwNeed, basis }) {
-  const gw = supSel.gw;                              // moc planowana (real ≈ 0)
-  const ksePct = (gw / CONST.KSE_PEAK_GW) * 100;
-  const needTone = gwNeed > gw + 1e-9 ? 'warn' : 'ok';
-  const gpus = supSel.gpus;
+function StatCards({ supSel, cap, gwNeed, plannedGW, basis }) {
+  // "Popyt wymaga mocy" liczymy w mocy klasy GB200 (jednostka adaptacyjna MW/GW)
+  // i porównujemy ZAWSZE do mocy planów — stałe, czytelne odniesienie.
+  const need = fmtPower(gwNeed);
+  const needTone = gwNeed > plannedGW ? 'warn' : 'ok';
+  const ksePct = (plannedGW / CONST.KSE_PEAK_GW) * 100;
+  const gpuSub = basis === 'real' ? 'realne, działające dziś'
+               : basis === 'plan' ? 'wyprowadzone z mocy planów'
+               : 'realne + planowane';
   return (
     <div className="stats">
-      <StatCard label="Pracujące GPU (AI-grade)" value={fmtInt(gpus)} unit=""
-                sub={basis === 'real' ? 'realne, działające dziś' : basis === 'plan' ? 'wyprowadzone z mocy planów' : 'real + plany'} />
+      <StatCard label="Pracujące GPU (AI-grade)" value={fmtInt(supSel.gpus)} unit=""
+                sub={gpuSub} />
       <StatCard label="Koszt budowy (CAPEX)" value={fmtMldPLN(cap)} unit=" mld zł"
                 sub="all-in · 37 M$/MW IT · kurs 4,0" />
-      <StatCard label="Moc na pokrycie popytu" value={fmtNum(gwNeed, gwNeed >= 10 ? 0 : 1)} unit=" GW"
-                sub={`w tej podstawie: ${fmtNum(gw, gw >= 1 ? 2 : 3)} GW`} tone={needTone} />
-      <StatCard label="Udział w szczycie KSE" value={fmtNum(ksePct, ksePct >= 1 ? 0 : 1)} unit=" %"
-                sub={`szczyt krajowy ~${CONST.KSE_PEAK_GW} GW (zima)`} />
+      <StatCard label="Popyt wymaga mocy" value={need.num} unit={' ' + need.unit}
+                sub={`klasy GB200 · w planach ${fmtNum(plannedGW, 2)} GW`} tone={needTone} />
+      <StatCard label="Plany a szczyt KSE" value={fmtNum(ksePct, ksePct >= 10 ? 0 : 1)} unit=" %"
+                sub={`${fmtNum(plannedGW, 2)} GW z ~${CONST.KSE_PEAK_GW} GW szczytu krajowego`} />
     </div>
   );
 }
@@ -184,7 +188,7 @@ function AdvancedParams({ params, setParams, supSel, open, onToggle }) {
 }
 
 function ControlPanel(props) {
-  const { stage, setStageId, bal, dem, supReal, supPlan, supSel, cap, gwNeed,
+  const { stage, setStageId, bal, dem, supReal, supPlan, supSel, cap, gwNeed, plannedGW,
           basis, setBasis, params, setParams, advOpen, setAdvOpen } = props;
   return (
     <div className="panel">
@@ -202,7 +206,7 @@ function ControlPanel(props) {
       <BalanceIndicator bal={bal} />
       <Gauge supReal={supReal} supPlan={supPlan} demTotal={dem.total} basis={basis} />
       <DemandBreakdown dem={dem} />
-      <StatCards supSel={supSel} cap={cap} gwNeed={gwNeed} basis={basis} />
+      <StatCards supSel={supSel} cap={cap} gwNeed={gwNeed} plannedGW={plannedGW} basis={basis} />
       <AdvancedParams params={params} setParams={setParams} supSel={supSel}
                       open={advOpen} onToggle={() => setAdvOpen(!advOpen)} />
     </div>

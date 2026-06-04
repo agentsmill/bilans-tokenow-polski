@@ -122,27 +122,44 @@ function unproject(x, y) {
 /* --------- KONTUR POLSKI: punkty graniczne [lon,lat], zgodnie z ruchem
             wskazówek zegara, od NW wzdłuż Bałtyku --------- */
 const BORDER_LL = [
-  // Wybrzeże Bałtyku (W -> E)
-  [14.22, 53.75], [14.27, 53.92], [14.62, 53.93], [15.10, 54.18], [15.55, 54.21],
-  [16.20, 54.27], [16.85, 54.58], [17.45, 54.79], [18.10, 54.84], [18.45, 54.58],
-  [18.80, 54.40], [19.35, 54.37], [19.65, 54.45],
+  // Wybrzeże Bałtyku (W -> E), od ujścia Odry / Świnoujścia
+  [14.22, 53.92], [14.62, 53.97], [15.10, 54.18], [15.58, 54.19],
+  [16.20, 54.26], [16.85, 54.55], [17.55, 54.79], [18.33, 54.84],   // Rozewie — najdalej na N
+  // Półwysep Helski + Zatoka Gdańska
+  [18.42, 54.80], [18.80, 54.61], [18.50, 54.52], [18.70, 54.37], [19.00, 54.36],
+  [19.65, 54.45],                                                    // Mierzeja Wiślana
   // Granica z Obwodem Kaliningradzkim (Rosja)
   [20.30, 54.42], [21.20, 54.32], [22.10, 54.35], [22.78, 54.36],
   // Litwa
   [23.10, 54.28], [23.48, 54.14], [23.52, 53.96],
   // Białoruś (Bug, wybrzuszenie Białowieży)
-  [23.92, 53.18], [23.93, 52.70], [23.62, 52.40], [23.55, 52.10],
+  [23.92, 53.18], [23.94, 52.70], [23.62, 52.40], [23.55, 52.10],
   // Ukraina (Bug, najdalej na wschód)
-  [23.90, 51.60], [24.12, 50.86], [23.65, 50.40], [22.65, 49.55], [22.88, 49.09],
-  // Słowacja (łuk karpacki)
-  [22.20, 49.35], [21.40, 49.42], [20.95, 49.30], [20.10, 49.18], [19.78, 49.20],
+  [23.90, 51.60], [24.15, 50.86], [23.65, 50.40], [22.65, 49.55], [22.86, 49.05],
+  // Słowacja (łuk karpacki — Bieszczady, Tatry)
+  [22.20, 49.22], [21.40, 49.38], [20.95, 49.28], [20.10, 49.17], [19.78, 49.19],
   [19.45, 49.40], [19.18, 49.40], [18.85, 49.52],
   // Czechy (Śląsk, Kotlina Kłodzka, Karkonosze)
   [18.60, 49.90], [18.05, 50.18], [17.72, 50.30], [17.00, 50.22], [16.55, 50.55],
-  [16.20, 50.62], [15.50, 50.78], [14.95, 50.86], [14.82, 50.87],
+  [16.20, 50.62], [15.50, 50.78], [15.00, 50.86], [14.82, 50.87],
   // Niemcy (Nysa Łużycka, Odra)
   [14.72, 51.50], [14.60, 52.05], [14.13, 52.85], [14.15, 53.05], [14.41, 53.27],
-  [14.27, 53.55],
+  [14.27, 53.62],
+];
+
+/* --------- MIASTA REFERENCYJNE — orientacja na mapie (bez DC) --------- */
+const CITIES = [
+  { name: 'Warszawa',  lat: 52.23, lon: 21.01 },
+  { name: 'Gdańsk',    lat: 54.35, lon: 18.65 },
+  { name: 'Szczecin',  lat: 53.43, lon: 14.55 },
+  { name: 'Poznań',    lat: 52.41, lon: 16.93 },
+  { name: 'Wrocław',   lat: 51.11, lon: 17.03 },
+  { name: 'Łódź',      lat: 51.77, lon: 19.46 },
+  { name: 'Lublin',    lat: 51.25, lon: 22.57 },
+  { name: 'Białystok', lat: 53.13, lon: 23.16 },
+  { name: 'Bydgoszcz', lat: 53.12, lon: 18.00 },
+  { name: 'Olsztyn',   lat: 53.78, lon: 20.49 },
+  { name: 'Rzeszów',   lat: 50.04, lon: 22.00 },
 ];
 
 function borderPath() {
@@ -193,8 +210,16 @@ function fmtMldPLN(pln) {
   return fmtNum(mld, d);
 }
 
+// moc z adaptacyjną jednostką — nigdy „0,0 GW": < 1 GW pokazujemy w MW, < 1 MW w kW
+function fmtPower(gw) {
+  if (gw >= 1) return { num: fmtNum(gw, gw >= 10 ? 0 : 2), unit: 'GW' };
+  const mw = gw * 1000;
+  if (mw >= 1) return { num: fmtNum(mw, mw >= 100 ? 0 : 1), unit: 'MW' };
+  return { num: fmtInt(mw * 1000), unit: 'kW' };
+}
+
 Object.assign(window, {
-  CONST, TPS_BY_GPU, PLANNED_DCS, REAL_DCS, INITIAL_DCS, WARSAW, STAGES, PARAM_DEFAULTS,
+  CONST, TPS_BY_GPU, PLANNED_DCS, REAL_DCS, INITIAL_DCS, WARSAW, CITIES, STAGES, PARAM_DEFAULTS,
   GEO, VIEW, project, unproject, BORDER_LL, borderPath,
-  fmtInt, fmtNum, fmtTokens, fmtMldPLN,
+  fmtInt, fmtNum, fmtTokens, fmtMldPLN, fmtPower,
 });

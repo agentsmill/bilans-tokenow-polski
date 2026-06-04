@@ -166,7 +166,7 @@ function App() {
 
         <ControlPanel stage={stage} setStageId={setStageId} bal={bal} dem={dem}
                       supReal={supReal.tokDay} supPlan={supPlan.tokDay} supSel={supSel}
-                      cap={cap} gwNeed={gwNeed} basis={basis} setBasis={setBasis}
+                      cap={cap} gwNeed={gwNeed} plannedGW={supPlan.gw} basis={basis} setBasis={setBasis}
                       params={params} setParams={setParams}
                       advOpen={advOpen} setAdvOpen={setAdvOpen} />
       </main>

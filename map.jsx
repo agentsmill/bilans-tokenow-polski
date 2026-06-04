@@ -108,7 +108,6 @@ function PolandMap({ dcs, selectedId, onSelect, onAddAt, mode, net, acc }) {
     onAddAt(lon, lat);
   }
 
-  const wpt = project(WARSAW.lon, WARSAW.lat);
   // rysuj plany pod spodem, realne na wierzchu (mniejsze, „żywe")
   const planned = dcs.filter((d) => d.kind !== 'real');
   const real = dcs.filter((d) => d.kind === 'real');
@@ -133,10 +132,20 @@ function PolandMap({ dcs, selectedId, onSelect, onAddAt, mode, net, acc }) {
       <path d={borderPath()} fill="none" stroke={acc} strokeWidth="3" strokeOpacity="0.12"
             className="border-glow" />
 
-      {/* Warszawa — punkt odniesienia */}
-      <circle cx={wpt.x} cy={wpt.y} r="5" fill="none" stroke="#7d8f88" strokeWidth="1.5" />
-      <circle cx={wpt.x} cy={wpt.y} r="1.6" fill="#7d8f88" />
-      <text x={wpt.x + 12} y={wpt.y + 5} className="ref-label">Warszawa</text>
+      {/* Miasta referencyjne — orientacja geograficzna */}
+      {CITIES.map((c) => {
+        const cp = project(c.lon, c.lat);
+        const capital = c.name === 'Warszawa';
+        const flip = cp.x > VIEW.w * 0.72;
+        return (
+          <g key={c.name} pointerEvents="none">
+            {capital && <circle cx={cp.x} cy={cp.y} r="5" fill="none" stroke="#7d8f88" strokeWidth="1.5" />}
+            <circle cx={cp.x} cy={cp.y} r={capital ? 1.8 : 2.2} fill="#7d8f88" />
+            <text x={cp.x + (flip ? -9 : 9)} y={cp.y + 5}
+                  textAnchor={flip ? 'end' : 'start'} className="ref-label">{c.name}</text>
+          </g>
+        );
+      })}
 
       <FlowArrow mode={mode} net={net} />
 
